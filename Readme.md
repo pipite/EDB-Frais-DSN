@@ -12,7 +12,7 @@ Le script lit les données de diverses sources, et en extrait les frais d'une p�
 |                   Paramètres .ini                   |                    Fichiers                     |
 | --------------------------------------------------- | ----------------------------------------------- |
 | [**XLSX_EDBDSN**][FichierXLSX]                      | EDB Frais DSN.xlsx                              |
-| [**CSV_REQ20**][fichierXLS]                         | req20_Matricules_paie-xx-xx-xxxx.csv            |
+| [**CSV_REQ20**][fichierCSV]                         | req20_Matricules_paie-xx-xx-xxxx.csv            |
 
 
 ## Fichier CSV final
