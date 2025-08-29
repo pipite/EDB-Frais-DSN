@@ -135,7 +135,6 @@ DateFormat = yyyy/MM/dd
 [XLSX_EDBDSN]
 FichierXLSX    = $rootpath$\Fichiers\EDB Frais DSN.xlsx
 SheetSage      = source-sage
-SheetTransco   = transco-matricules
 Code PAC       = 900380
 S21.G00.54.001 = 07
 
