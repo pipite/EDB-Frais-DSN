@@ -108,14 +108,14 @@ logtoscreen = yes
 # Le parametre "debug" contrôle l'affichage des infos de debug dans la console
 debug       = no
 
-# Le parametre "warntoerr" permet d'inclure ou pas les warnings dans le fichier SynchroAD.err
+# Le parametre "warntoerr" permet d'inclure ou pas les warnings dans le fichier EDB Frais DSN_Cumul.err
 warntoerr   = yes
 
 # -------------------------------------------------------------------
 #     Chemin des fichiers de LOGS
 # -------------------------------------------------------------------
 [intf]
-name        = Traitement des données RH pour la gestion des frais DSN
+name        = Generation fichier CSV des Frais DSN 
 
 # Chemin du fichier log : 
 pathfilelog = $rootpath$\logs\EDB Frais DSN_One_Shot.log
@@ -142,7 +142,7 @@ HEADERstartline = 4
 [FINAL]
 FichierCSV   = $rootpath$\Fichiers\final.csv
 delimiter    = ;   
-# Mois de paie :  CURRENT / PREVIOUS / ALL / 202302  
+# Mois de paie   CURRENT / PREVIOUS / ALL / 202302  
 Mois de paie = 202302
 
 # -------------------------------------------------------------------
@@ -155,7 +155,7 @@ Mois de paie = 202302
 [email]
 sendemail    = no
 destinataire = btran56@gmail.com
-Subject      = Synchro AD BERTIN
+Subject      = EDB Frais DSN
 emailmode    = SMTP
 UseSSL       = false
 
