@@ -16,12 +16,10 @@ function Var_Add {
 
 	if ( $file -eq $script:cfg["intf"]["pathfilelog"] )     { $script:pathfilelog     += $value }
 	if ( $file -eq $script:cfg["intf"]["pathfileerr"] )     { $script:pathfileerr     += $value }
-	if ( $file -eq $script:cfg["intf"]["pathfilemod"] )     { $script:pathfilemod     += $value }
 }
 function Save_logs {
 	$script:pathfilelog | Add-Content -Path $script:cfg["intf"]["pathfilelog"]
 	$script:pathfileerr | Add-Content -Path $script:cfg["intf"]["pathfileerr"]
-	$script:pathfilemod | Add-Content -Path $script:cfg["intf"]["pathfilemod"]
 }
 function OUT {
 	Param ( [string]$trigramme, [string]$func, [string]$msg, [string]$color="White",[bool]$CRLF=$false, [bool]$EMAIL=$false, [bool]$NOSCREEN=$false, [switch]$DBG, [switch]$LOG, [switch]$MOD, [switch]$DLT, [switch]$INA, [switch]$ERR, [switch]$ADDERR, [switch]$ADDWRN)
