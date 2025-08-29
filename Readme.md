@@ -123,9 +123,6 @@ pathfilelog = $rootpath$\logs\EDB Frais DSN_One_Shot.log
 # Chemin du fichier logs d'erreur
 pathfileerr = $rootpath$\logs\EDB Frais DSN_Cumul.err
 
-# Chemin du fichier des logs modifications
-pathfilemod = $rootpath$\logs\EDB Frais DSN_Cumul.mod
-
 # Format de date
 DateFormat = yyyy/MM/dd
 
