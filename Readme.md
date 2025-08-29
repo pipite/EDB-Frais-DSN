@@ -98,13 +98,10 @@ Contient le cumul des erreurs constatées dans tous les traitements
 # -----------------------------------------------------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------
-#     Parametrage du comportement de l'interface CegedimToSQL.ps1
+#     Parametrage du comportement de l'interface EDB Frais DSN.ps1
 # -------------------------------------------------------------------
 
 [start]
-# Le parametre "ApplyUpdate" yes/no : permet de simuler sans modifier la base CegedimToSQL si ApplyUpdate = no
-ApplyUpdate = yes
-
 # Le parametre "logtoscreen" contrôle l'affichage de toutes les infos de log/error/warning dans la console
 logtoscreen = yes
 
@@ -118,7 +115,7 @@ warntoerr   = yes
 #     Chemin des fichiers de LOGS
 # -------------------------------------------------------------------
 [intf]
-name        = Synchronisation Clouds Cegedim >> Base SQL CegedimToSQL
+name        = Traitement des données RH pour la gestion des frais EDB
 
 # Chemin du fichier log : 
 pathfilelog = $rootpath$\logs\EDB Frais DSN_One_Shot.log
