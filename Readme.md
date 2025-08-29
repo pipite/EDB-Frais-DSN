@@ -24,22 +24,23 @@ Le script lit les données de diverses sources, et en extrait les frais d'une p�
 
 ## Principe du traitement
 
-A partir des fichiers sources, traiter les datas et **générer des hashtables (src) ayant la même structure que les fichiers**.
+A partir des fichiers sources, traiter les datas et **générer une hashtable ayant la même structure que le fichier [FINAL][FichierCSV] à générer**.
 
 * Charge les données depuis les fichiers sources **CSV** et **XLSX.**
-* Charge des hashtables (dst) depuis les fichiers sources
 * Transcode les matricules RH en matricules paie
 * Restreint le traitement sur la période défini dans le parametre [FINAL][Mois de paie] du fichier .ini
     * CURRENT : traite la période du mois de la date courrante
     * PREVIOUS : traite la période du mois précédant la date courrante
 	* ALL : traite toutes les périodes
     * xxxxxx : exemple 202302 ( ne traite que la paie de fevrier 2023, correspondant aux données du 01/01/2023 au 31/01/2023 )
-* génère le fichier final.csv
+* Génère la hashtable FINAL
+* Génère le fichier final.csv
 
 **Nota important** : *Ce script ne gère que les matricules RH qui ont une correspondance en matricule paie.*
 
 # Traitements
 
+* LoadIni
 * Query_XLSX_EDBDSN
 * Query_CSV_REQ20
 * Transcode_Matricule
