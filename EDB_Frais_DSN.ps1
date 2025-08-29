@@ -231,77 +231,6 @@ function GetFilePath {
 	}
 	return $filepath
 }
-function Get-BDDConnectionParams {
-    return @{
-        server      = $script:cfg["SQL_Server"]["server"]
-        database    = $script:cfg["SQL_Server"]["database"]
-        login       = $script:cfg["SQL_Server"]["login"]
-        password    = Encode $script:cfg["SQL_Server"]["password"]
-        datefrmtout = $script:cfg["SQL_Server"]["frmtdateOUT"]
-    }
-}
-# Fonction utilitaire pour effectuer une requête BDD standard
-function Query_BDDTable {
-    param(
-        [string]$tableName,
-        [string]$functionName,
-        [array]$keyColumns,
-        [hashtable]$targetVariable,
-        [switch]$UseFrmtDateOUT
-    )
-    
-    $params = Get-BDDConnectionParams
-    
-    LOG $functionName "Chargement de la table [$tableName] en memoire" -CRLF
-    
-    # Vider la hashtable cible
-    $targetVariable.Clear()
-    
-    # Paramètres pour QueryTable
-    $queryParams = @{
-        server = $params.server
-        database = $params.database
-        table = $tableName
-        login = $params.login
-        password = $params.password
-        keycolumns = $keyColumns
-    }
-    
-    # Ajouter le format de date si demandé
-    if ($UseFrmtDateOUT) {
-        $queryParams.frmtdateOUT = $script:cfg["SQL_Server"]["frmtdateOUT"]
-    }
-    
-    # Exécuter la requête et affecter le résultat
-    $result = QueryTable @queryParams
-    
-    # Copier le résultat dans la variable cible
-    foreach ($key in $result.Keys) {
-        $targetVariable[$key] = $result[$key]
-    }
-}
-# Fonction utilitaire pour effectuer une mise à jour BDD standard
-function Update_BDDTable {
-    param(
-        [hashtable]$sourceData,
-        [hashtable]$targetData,
-        [array]$keyColumns,
-        [string]$tableName,
-        [string]$functionName,
-        [scriptblock]$reloadFunction
-    )
-    
-    $params = Get-BDDConnectionParams
-    
-    LOG $functionName "Update de la table $tableName" -CRLF
-    
-    UpdateTable $sourceData $targetData $keyColumns $params.server $params.database $tableName $params.login $params.password $script:cfg["start"]["ApplyUpdate"]
-    
-    # Recharger les modifs en memoire
-    if ($reloadFunction) {
-        & $reloadFunction
-    }
-}
 
 function Query_XLSX_EDBDSN {
 	$file         = $script:cfg["XLSX_EDBDSN"]["fichierXLSX"] 
@@ -330,7 +259,6 @@ function Query_XLSX_EDBDSN {
 		$cpt++
 	}
 }
-
 
 function Query_CSV_REQ20 {
 	$file            = $script:cfg["CSV_REQ20"]["FichierCSV"]
