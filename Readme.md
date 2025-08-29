@@ -53,7 +53,7 @@ Charge en memoire le contenu du fichier [**XLSX_EDBDSN**][FichierXLSX] et le con
 
 ### Query_CSV_REQ20
 
-Charge en memoire le contenu du fichier [**CSV_REQ20**][fichierXLS]  et le convertit en hash table.
+Charge en memoire le contenu du fichier [**CSV_REQ20**][fichierCSV]  et le convertit en hash table.
 
 ### Transcode_Matricule
 
@@ -65,7 +65,7 @@ Génère la hash table FINAL comportant les données nécessaires pour la géné
 
 * Code PAC : Constante défini dans le parametre [XLSX_EDBDSN][Code PAC] du fichier .ini
 * Mois de paie : Extrait du fichier [**XLSX_EDBDSN**][FichierXLSX], champ "Période"
-* Matricule paie : Transcodé depuis le fichier [**CSV_REQ20**][fichierXLS]
+* Matricule paie : Transcodé depuis le fichier [**CSV_REQ20**][fichierCSV]
 * S21.G00.54.001 : Constante défini dans le parametre [XLSX_EDBDSN][S21.G00.54.001] du fichier .ini
 * S21.G00.54.002 : Extrait du fichier [**XLSX_EDBDSN**][FichierXLSX], champ "Solde Tenue de Compte"
 * S21.G00.54.003 Premier jour du mois précédant le Mois de paie (calculé)
