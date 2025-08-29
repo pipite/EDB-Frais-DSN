@@ -115,7 +115,7 @@ warntoerr   = yes
 #     Chemin des fichiers de LOGS
 # -------------------------------------------------------------------
 [intf]
-name        = Traitement des données RH pour la gestion des frais EDB
+name        = Traitement des données RH pour la gestion des frais DSN
 
 # Chemin du fichier log : 
 pathfilelog = $rootpath$\logs\EDB Frais DSN_One_Shot.log
