@@ -48,13 +48,11 @@ function OUT {
 		if ( $DBG -and $script:cfg["start"]["debug"] -eq "yes" ) { Var_Add $($script:cfg["intf"]["pathfilelog"]) -value $stampstr }
 		if ( $LOG ) { Var_Add $($script:cfg["intf"]["pathfilelog"])     -value "" }
 		if ( $ERR ) { Var_Add $($script:cfg["intf"]["pathfileerr"])     -value "" }
-		if ( $MOD ) { Var_Add $($script:cfg["intf"]["pathfilemod"])     -value "" }
 
 	}
 	if ( $DBG -and $script:cfg["start"]["debug"] -eq "yes" ) { Var_Add $($script:cfg["intf"]["pathfilelog"]) -value $stampstr }
 	if ( $LOG ) { Var_Add $($script:cfg["intf"]["pathfilelog"])     -value $stampstr }
 	if ( $ERR ) { Var_Add $($script:cfg["intf"]["pathfileerr"])     -value $stampstr }
-	if ( $MOD ) { Var_Add $($script:cfg["intf"]["pathfilemod"])     -value $stampstr }
 	
 	if ( $ADDERR ) { $script:ERREUR  += 1 }
 	if ( $ADDWRN ) { $script:WARNING += 1 }
@@ -182,7 +180,6 @@ function LoadIni {
 	}
 	$script:cfg["intf"]["pathfilelog"] 	= GetFilePath $script:cfg["intf"]["pathfilelog"]
 	$script:cfg["intf"]["pathfileerr"]	= GetFilePath $script:cfg["intf"]["pathfileerr"]
-	$script:cfg["intf"]["pathfilemod"]  = GetFilePath $script:cfg["intf"]["pathfilemod"]
 
 	# Suppression des fichiers One_Shot
 	if ((Test-Path $($script:cfg["intf"]["pathfilelog"]) -PathType Leaf)) { Remove-Item -Path $script:cfg["intf"]["pathfilelog"]}    
@@ -190,8 +187,8 @@ function LoadIni {
 	# Création des fichiers innexistants
 	$null = New-Item -type file $($script:cfg["intf"]["pathfilelog"]) -Force;
 	if (-not(Test-Path $($script:cfg["intf"]["pathfileerr"]) -PathType Leaf)) { $null = New-Item -type file $($script:cfg["intf"]["pathfileerr"]) -Force; }
-	if (-not(Test-Path $($script:cfg["intf"]["pathfilemod"]) -PathType Leaf)) { $null = New-Item -type file $($script:cfg["intf"]["pathfilemod"]) -Force; }
 
+	
 	$script:cfg["XLSX_EDBDSN"]["fichierXLSX"] = GetFilePath $script:cfg["XLSX_EDBDSN"]["fichierXLSX"] -Needed
 	$script:cfg["CSV_REQ20"]["fichierCSV"]    = GetFilePath $script:cfg["CSV_REQ20"]["fichierCSV"] -Needed
 	$script:cfg["FINAL"]["FichierCSV"]        = GetFilePath $script:cfg["FINAL"]["FichierCSV"]
@@ -384,6 +381,13 @@ function Extract_Final {
 	LOG "Extract_Final" "Create CSV final file : Mois de paie : $($script:cfg['FINAL']['Mois de paie'])"
 	$cpt = 0
 	$script:FINAL = @{}
+
+	if ( $script:cfg['FINAL']['Mois de paie'] -eq "CURRENT" ) {
+		$script:cfg['FINAL']['Mois de paie'] = (Get-Date).ToString("yyyyMM")
+	}
+	if ( $script:cfg['FINAL']['Mois de paie'] -eq "PREVIOUS" ) {
+		$script:cfg['FINAL']['Mois de paie'] = (Get-Date).AddMonths(-1).ToString("yyyyMM")
+	}
     foreach ($key in $script:EDBDSN.Keys) {
 		if ( $script:EDBDSN[$key]['matricule paie'] -ne "UNKNOWN" ) {
 			$periode = $script:EDBDSN[$key]['Période']
