@@ -49,87 +49,10 @@ function LoadIni {
 	if (-not(Test-Path $($script:cfg["intf"]["pathfileerr"]) -PathType Leaf)) { $null = New-Item -type file $($script:cfg["intf"]["pathfileerr"]) -Force; }
 
 	
-	$script:cfg["XLSX_EDBDSN"]["fichierXLSX"] = GetFilePath $script:cfg["XLSX_EDBDSN"]["fichierXLSX"] -Needed
-	$script:cfg["CSV_REQ20"]["fichierCSV"]    = GetFilePath $script:cfg["CSV_REQ20"]["fichierCSV"] -Needed
-	$script:cfg["FINAL"]["FichierCSV"]        = GetFilePath $script:cfg["FINAL"]["FichierCSV"]
-}
-function Query_XLSX_EDBDSN {
-	$file         = $script:cfg["XLSX_EDBDSN"]["fichierXLSX"] 
-	$sheetSage    = $script:cfg["XLSX_EDBDSN"]["SheetSage"]
-	$sheetTransco = $script:cfg["XLSX_EDBDSN"]["sheetTransco"]
-
-	LOG "Query_XLSX_EDBDSN" "Chargement du fichier $file - $sheetSage"
-	$result = Invoke-ExcelQuery -filePath $file -sqlQuery "SELECT * FROM [$sheetSage$]" -key "_index"
-	$table  = $result.Table
-	$cpt = 0
-	$script:EDBDSN = @{}
-    foreach ($row in $table.Rows) {
-		$script:EDBDSN[$cpt] = @{}
-		foreach ($col in $table.Columns) {
-			$cap = $col.Caption
-			$script:EDBDSN[$cpt][$cap] = $row[$col]
-		}
-		[string]$s = $row['Tiers - Code']
-		if ($s.Length -ge 9) {
-			$s = $s.Substring(4,4)
-			$s = $s.PadLeft(8, '0')
-			$script:EDBDSN[$cpt]['matricule rh'] = $s
-		} else {
-			$script:EDBDSN[$cpt]['matricule rh'] = ""
-		}
-		$cpt++
-	}
-}
-
-function Query_CSV_REQ20 {
-	$file            = $script:cfg["CSV_REQ20"]["FichierCSV"]
-	$headerstartline = $script:cfg["CSV_REQ20"]["HEADERstartline"] - 1
-	$datecol 		 = @("D Fin contrat")
-
-	LOG "Query_CSV_REQ20" "Chargement du fichier $file"
-	$script:REQ20   = @{}
-	$script:REQ20   = Invoke-CSVQuery -csvfile $file -key "Matricule" -separator "," -row $headerstartline -frmtdateOUT $script:cfg["intf"]["DateFormat"] -datecol $datecol
-}
-
-function Transcode_Matricule {
-	LOG "Transcode_Matricule" "Transcode Matricule RH >> Matricule Paie"
-
-	$ok = 0
-	$unknow = 0
-	$undef = 0
-	$last = ""
-    foreach ($key in $script:EDBDSN.Keys) {
-        $matricule_rh = $script:EDBDSN[$key]['matricule rh']
-		$nom = $script:EDBDSN[$key]['Tiers - Libellé']
-		if ( $script:REQ20.ContainsKey($matricule_rh) ) {
-			$matricule_paie = $script:REQ20[$matricule_rh]['matricule paie']
-			if ([string]::IsNullOrEmpty($matricule_paie)) {
-				if ( $last -ne $matricule_rh ) {
-					ERR "Transcode_Matricule" "[Matricule paie] non défini dans REQ20 pour [matricule rh] : $matricule_rh >> $nom"
-					$undef++
-				}
-				$script:EDBDSN[$key]['matricule paie'] = "UNKNOWN"
-			} else {
-				DBG "Transcode_Matricule" "$matricule_rh >> $matricule_paie >> $nom"
-				$script:EDBDSN[$key]['matricule paie'] = $matricule_paie
-				$ok++
-			}
-		} else {
-			if ( $last -ne $matricule_rh ) {
-				ERR "Transcode_Matricule" "[matricule rh] n'existe pas dans le fichier REQ20 : $matricule_rh >> $nom"
-				$unknow++
-			}
-			$script:EDBDSN[$key]['matricule paie'] = "UNKNOWN"
-		}
-		$last = $matricule_rh
-	}
-	LOG "Transcode_Matricule" "matricule : OK $ok >> UNKNOWN $unknow >> UNDEF $undef"
-}
-
-function Extract_Final {
-	LOG "Extract_Final" "Create CSV final file : Mois de paie : $($script:cfg['FINAL']['Mois de paie'])"
-	$cpt = 0
-	$script:FINAL = @{}
+	$script:cfg["XLS_Frais_Policy_FORTIL_GROUP"]["fichierXLS"] = GetFilePath $script:cfg["XLS_Frais_Policy_FORTIL_GROUP"]["fichierXLS"] -Needed
+	$script:cfg["XLS_Frais_Policy_FUSION"]["fichierXLS"]       = GetFilePath $script:cfg["XLS_Frais_Policy_FUSION"]["fichierXLS"] -Needed
+	$script:cfg["CSV_REQ20"]["fichierCSV"]                     = GetFilePath $script:cfg["CSV_REQ20"]["fichierCSV"] -Needed
+	$script:cfg["FINAL"]["FichierCSV"]                         = GetFilePath $script:cfg["FINAL"]["FichierCSV"]
 
 	if ( $script:cfg['FINAL']['Mois de paie'] -eq "CURRENT" ) {
 		$script:cfg['FINAL']['Mois de paie'] = (Get-Date).ToString("yyyyMM")
@@ -137,26 +60,147 @@ function Extract_Final {
 	if ( $script:cfg['FINAL']['Mois de paie'] -eq "PREVIOUS" ) {
 		$script:cfg['FINAL']['Mois de paie'] = (Get-Date).AddMonths(-1).ToString("yyyyMM")
 	}
-    foreach ($key in $script:EDBDSN.Keys) {
-		if ( $script:EDBDSN[$key]['matricule paie'] -ne "UNKNOWN" ) {
-			$periode = $script:EDBDSN[$key]['Période']
-			if ( ($script:cfg['FINAL']['Mois de paie'] -eq "ALL") -or ($periode -eq $script:cfg['FINAL']['Mois de paie']) ) {
-				$periodeDate = [datetime]::ParseExact($periode + "01", "yyyyMMdd", $null)
-
-				$moisPrecedent = $periodeDate.AddMonths(-1)
-				$start = $moisPrecedent.ToString("yyyyMM") + "01"
-				$end = $moisPrecedent.AddMonths(1).AddDays(-1).ToString("yyyyMMdd")
-
-				$script:FINAL[$key] = @{}
-				$script:FINAL[$key]['Code PAC']       = $script:cfg['XLSX_EDBDSN']['Code PAC']
-				$script:FINAL[$key]['Mois de paie']   = $periode
-				$script:FINAL[$key]['Matricule paie'] = $script:EDBDSN[$key]['matricule paie']
-				$script:FINAL[$key]['S21.G00.54.001'] = $script:cfg['XLSX_EDBDSN']['S21.G00.54.001']
-				$script:FINAL[$key]['S21.G00.54.002'] = $script:EDBDSN[$key]['Solde Tenue de Compte']
-				$script:FINAL[$key]['S21.G00.54.003'] = $start
-				$script:FINAL[$key]['S21.G00.54.004'] = $end
-				$cpt++
+}
+function Compute_CategorieFrais {
+	$script:Categorie = @{}
+	foreach ($key in $script:cfg['Categories'].Keys) {
+		$cat = $script:cfg['Categories'][$key]
+		if ( $cat -eq "Ignore") {
+			$val = "Ignore"
+		} else {
+			foreach ($s21 in $script:cfg['S21.G00.54.001'].Keys) {
+				if ($cat -eq $s21) {
+					$val = $script:cfg['S21.G00.54.001'][$s21]
+					break
+				}
 			}
+		}
+		$script:Categorie[$key] = $val
+		DBG "Compute_CategorieFrais" "Catégorie : $key >> $val"	
+	}
+}
+function Query_CSV_REQ20 {
+	$file            = $script:cfg["CSV_REQ20"]["FichierCSV"]
+	$headerstartline = $script:cfg["CSV_REQ20"]["HEADERstartline"] - 1
+	$datecol 		 = @("D Fin contrat")
+
+	LOG "Query_CSV_REQ20" "Chargement du fichier $file" -CRLF
+	$script:REQ20 = Invoke-CSVQuery -csvfile $file -key "Matricule" -separator "," -row $headerstartline -frmtdateOUT $script:cfg["intf"]["DateFormat"] -datecol $datecol
+}
+function Get_CategorieNumber {
+	param ( [string]$categorie )
+
+	if ( $script:Categorie.ContainsKey($categorie) ) {
+		return $script:Categorie[$categorie]
+	}
+	return $script:Categorie["Default"]
+}
+function Query_XLS_Frais_Policy {
+	$script:FRAIS = @{}
+
+	$query = "SELECT [Matricule],[Catégorie (Description)],[Date de validation],[Montant] FROM [Sheet0$] WHERE [Statut] = 'PMNT_NOT_PAID' AND [statusId2] = 'EXPENSE_ACCEPTED' ORDER BY [Matricule]"
+	$file  = $script:cfg["XLS_Frais_Policy_FORTIL_GROUP"]["fichierXLS"] 
+	$sheet = $script:cfg["XLS_Frais_Policy_FORTIL_GROUP"]["Sheet"]
+	LOG "Query_XLS_Frais_Policy" "Chargement du fichier $file - $sheet"
+	$FORTILGROUP = Invoke-ExcelQuery -filePath $file -sqlQuery $query -key "_index" -ConvertToHashtable
+	Consolide_Frais -Data $FORTILGROUP
+
+	$file  = $script:cfg["XLS_Frais_Policy_FUSION"]["fichierXLS"] 
+	$sheet = $script:cfg["XLS_Frais_Policy_FUSION"]["Sheet"]
+	LOG "Query_XLS_Frais_Policy" "Chargement du fichier $file - $sheet" -CRLF
+	$FUSION = Invoke-ExcelQuery -filePath $file -sqlQuery $query -key "_index" -ConvertToHashtable
+	Consolide_Frais -Data $FUSION
+}
+function Consolide_Frais {
+    param ( [hashtable]$data )
+
+	LOG "Consolide_Frais" "Consolidation des frais par type de frais et par matricule"
+	$cptuser = 0
+	$cptlignes = 0
+	$cptundef = 0
+	$lastmatricule_rh = ""
+
+	foreach ($key in $data.Keys) {
+		# passer au suivant si pas bon mois de paie
+		$dateval = [datetime]::ParseExact($data[$key]['Date de validation'], "yyyy-MM-dd HH:mm:ss.0", $null)
+		$datemonth = $dateval.ToString("yyyyMM")
+		if ( $datemonth -ne $script:cfg['FINAL']['Mois de paie'] ) { continue }
+		
+		# passer au suivant si Categorie = Ignore
+		$catnumber = Get_CategorieNumber $data[$key]['Catégorie (Description)']
+		if ( $catnumber -eq "Ignore" ) { continue }
+
+		# passer au suivant si montant = 0
+		$montant = [decimal]$data[$key]['Montant']
+		if ( $montant -eq 0 ) { continue }
+
+		# passer au suivant si [Matricule paie] non défini dans REQ20
+		[string]$matricule_rh = $data[$key]['Matricule']
+		$zeromatricule_rh = $matricule_rh.PadLeft(8, '0')
+		if ( $script:REQ20.ContainsKey($zeromatricule_rh) ) {
+			$matricule_paie = $script:REQ20[$zeromatricule_rh]['matricule paie']
+			if ([string]::IsNullOrEmpty($matricule_paie)) {
+				if ( $lastmatricule_rh -ne $zeromatricule_rh ) {
+					ERR "Transcode_Matricule" "[Matricule paie] non défini dans REQ20 pour [matricule rh] : $zeromatricule_rh"
+					$cptundef++
+				}
+				$matricule_paie = "UNKNOWN"
+				$lastmatricule_rh = $zeromatricule_rh
+				continue
+			}
+		} else {
+				if ( $lastmatricule_rh -ne $zeromatricule_rh ) {
+					ERR "Transcode_Matricule" "[Matricule paie] non défini dans REQ20 pour [matricule rh] : $zeromatricule_rh"
+					$cptundef++
+				}
+			$matricule_paie = "UNKNOWN"
+			$lastmatricule_rh = $zeromatricule_rh
+			continue
+		}
+
+		# Initialisation de la structure de données [Matricule_rh] si matricule inexistant
+		if ( -not ($script:FRAIS.ContainsKey($matricule_rh)) ) { 
+			$cptuser++
+			$moisdebut = (Get-Date -Year $dateval.Year -Month $dateval.Month -Day 1).ToString('yyyyMMdd')
+			$moisfin   = (Get-Date -Year $dateval.Year -Month $dateval.Month -Day 1).AddMonths(1).AddDays(-1).ToString('yyyyMMdd')
+			$script:FRAIS[$matricule_rh] = @{} 
+			$script:FRAIS[$matricule_rh]['Code PAC']       = $script:cfg['Code PAC']['Code PAC']
+			$script:FRAIS[$matricule_rh]['Mois de paie']   = $datemonth
+			$script:FRAIS[$matricule_rh]['Matricule paie'] = $matricule_paie
+			$script:FRAIS[$matricule_rh]['S21.G00.54.001'] = @{}
+			$script:FRAIS[$matricule_rh]['S21.G00.54.003'] = $moisdebut
+			$script:FRAIS[$matricule_rh]['S21.G00.54.004'] = $moisfin
+		}
+
+		# Initialisation de la structure de données [Matricule_rh][catnumber] si catnumber inexistant (S21.G00.54.001)
+		if ( -not ($script:FRAIS[$matricule_rh]['S21.G00.54.001'].ContainsKey($catnumber)) ) { 
+			$script:FRAIS[$matricule_rh]['S21.G00.54.001'][$catnumber] = 0
+			$cptlignes++
+		}
+		$script:FRAIS[$matricule_rh]['S21.G00.54.001'][$catnumber] += $montant  # S21.G00.54.002
+	}
+	LOG "Consolide_Frais" "Total [Matricule] : $cptuser - Total lignes de frais consolidées [Matricule][Categories] : $cptlignes"
+	if ( $cptundef -gt 0 ) {
+		WRN "Consolide_Frais" "Total [Matricule paie] non définis dans REQ20 : $cptundef"
+	}
+}
+
+function Extract_Final {
+	LOG "Extract_Final" "Create CSV final file : Mois de paie : $($script:cfg['FINAL']['Mois de paie'])" -CRLF
+	$cpt = 0
+	$script:FINAL = @{}
+
+    foreach ($matricule_rh in $script:FRAIS.Keys) {
+		foreach ($catnumber in $script:FRAIS[$matricule_rh]['S21.G00.54.001'].Keys) {
+			$script:FINAL[$cpt] = @{}
+			$script:FINAL[$cpt]['Code PAC']       = $script:FRAIS[$matricule_rh]['Code PAC']
+			$script:FINAL[$cpt]['Mois de paie']   = $script:FRAIS[$matricule_rh]['Mois de paie']
+			$script:FINAL[$cpt]['Matricule paie'] = $script:FRAIS[$matricule_rh]['Matricule paie']
+			$script:FINAL[$cpt]['S21.G00.54.001'] = $catnumber
+			$script:FINAL[$cpt]['S21.G00.54.002'] = [math]::Round($script:FRAIS[$matricule_rh]['S21.G00.54.001'][$catnumber], 2)
+			$script:FINAL[$cpt]['S21.G00.54.003'] = $script:FRAIS[$matricule_rh]['S21.G00.54.003']
+			$script:FINAL[$cpt]['S21.G00.54.004'] = $script:FRAIS[$matricule_rh]['S21.G00.54.004']
+			$cpt++
 		}
 	}
 	LOG "Extract_Final" "$cpt lignes traités."
@@ -173,32 +217,34 @@ function FinalToCSV {
 # --------------------------------------------------------
 #               Main
 # --------------------------------------------------------
+	# Chargement des modules
+	$pathmodule = "$PSScriptRoot\Modules"
 
-$script:cfgFile = "$PSScriptRoot\EDB_Frais_DSN.ini"
-# Chargement des modules
+	if (Test-Path "$pathmodule\Ini.ps1" -PathType Leaf) {
+		. "$pathmodule\Ini.ps1"                        > $null 
+		. (GetPathScript "$pathmodule\Log.ps1")        > $null
+		. (GetPathScript "$pathmodule\StrConvert.ps1") > $null
+		. (GetPathScript "$pathmodule\SendEmail.ps1")  > $null
+		. (GetPathScript "$pathmodule\XLSX.ps1")       > $null
+		. (GetPathScript "$pathmodule\Csv.ps1")        > $null
+	} else {
+		Write-Host "Fichier manquant : $pathmodule\Ini.ps1" -ForegroundColor Red
+		exit (1)
+	}
 
-. "$PSScriptRoot\Modules\Ini.ps1" > $null 
-. "$PSScriptRoot\Modules\Log.ps1" > $null 
-. "$PSScriptRoot\Modules\Encode.ps1" > $null 
-. "$PSScriptRoot\Modules\SendEmail.ps1"  > $null 
-. "$PSScriptRoot\Modules\StrConvert.ps1" > $null 
-. "$PSScriptRoot\Modules\XLSX.ps1"       > $null 
-. "$PSScriptRoot\Modules\Csv.ps1"        > $null 
+	# Recuperation des parametres passes au script dans $script:cfg
+	$script:cfgFile = "$PSScriptRoot\EDB_Frais_DSN.ini"
+	LoadIni
 
-LoadIni
+	# Parametrage console en UFT8 (chcp 65001 ou 850) pour carractères accentués
+	SetConsoleToUFT8
 
-SetConsoleToUFT8
+	Compute_CategorieFrais
+	Query_CSV_REQ20
+	Query_XLS_Frais_Policy
+	Extract_Final
+	FinalToCSV
 
-Add-Type -AssemblyName System.Web
-
-# Chargement des modules
-
-Query_XLSX_EDBDSN
-Query_CSV_REQ20
-Transcode_Matricule
-Extract_Final
-FinalToCSV
-
-QUIT "MAIN" "Process terminé"
+	QUIT "MAIN" "Process terminé"
 
 
